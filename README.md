@@ -4,7 +4,7 @@ Hi, my name is Steven and this game server (and game) is a project for a technic
 
 The client folder was provided by the company and I coded the app.js file.
 
-#Description of the Game (copied from the documentation): 
+# Description of the Game (copied from the documentation): 
 
 The Game
 
@@ -34,11 +34,11 @@ A connect-the-dots game for two players.
 
 • The player who draws the last line is the loser.
 
-#Attribution
+# Attribution
 
 The game was designed by Sid Sackson.
 
-#Dependencies
+# Dependencies
 
 This project uses
 
