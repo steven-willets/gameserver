@@ -45,14 +45,15 @@ app.listen(port, () => {
     if (i !== -1) arr.splice(i, 1);
   }
 
+  //Generate the 8 surrounding nodes for a given node, check if they're open
   function adjacentNode(node){
     let x = node[0];
     let y = node[1];
+    //Separated into horizontal/vertical and diagonal because diagonal needs to be checked for intersection
     let tAdjacentArray = [[x, y - 1], [x + 1, y], [x, y + 1], [x - 1, y]];
     let xAdjacentArray = [[x + 1, y - 1], [x + 1, y + 1], [x - 1, y + 1],  [x - 1, y - 1]];
     let openAdjNode = false;
 
-    // Check if the surrounding nodes are open
     tAdjacentArray.forEach(function(e){
         if (matchCoords({x:e[0], y:e[1]}, openNodeArray) !== -1) openAdjNode = true;
     });
