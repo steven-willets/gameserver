@@ -10,7 +10,15 @@ app.use(cors())
 app.listen(port, () => {
   console.log(`Game Server listening at http://localhost:${port}`)
 })
-  
+
+  app.get("/", function(req,res){
+    res.sendFile(__dirname + "/client/index.html");
+  });
+
+  app.use(express.static(__dirname + "/client"))
+
+app.use("/assets", express.static(__dirname + "/client"))
+
   app.use(bodyParser.urlencoded({ extended: false }));
   app.use(bodyParser.json());
   
