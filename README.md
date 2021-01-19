@@ -10,11 +10,11 @@ The Game
 
 A connect-the-dots game for two players.
 
-#Definitions
+# Definitions
 
 • octilinear line - a horizontal, vertical, or 45° diagonal line
 
-#Rules
+# Rules
 
 • The game is played on a 4x4 grid of 16 nodes.
 
