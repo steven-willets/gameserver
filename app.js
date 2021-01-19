@@ -17,12 +17,12 @@ app.listen(port, () => {
 
   app.use(express.static(__dirname + "/client"))
 
-app.use("/assets", express.static(__dirname + "/client"))
+  app.use("/assets", express.static(__dirname + "/client"))
 
   app.use(bodyParser.urlencoded({ extended: false }));
   app.use(bodyParser.json());
   
-  //Game State variables
+  // Game State variables
   let turn;
   let openNodeArray;
   let storedNode;
@@ -30,7 +30,7 @@ app.use("/assets", express.static(__dirname + "/client"))
   let diagonalArray;
   
   function matchCoords(obj,arr){
-    //Find index of coord pair within an array
+    // Find index of coord pair within an array
     for (let i = 0; i < arr.length; i++) {
         let coord = [obj.x,obj.y];
         if (arr[i][0] == coord[0] && arr[i][1] == coord[1]) {
@@ -52,6 +52,7 @@ app.use("/assets", express.static(__dirname + "/client"))
     let xAdjacentArray = [[x + 1, y - 1], [x + 1, y + 1], [x - 1, y + 1],  [x - 1, y - 1]];
     let openAdjNode = false;
 
+    // Check if the surrounding nodes are open
     tAdjacentArray.forEach(function(e){
         if (matchCoords({x:e[0], y:e[1]}, openNodeArray) !== -1) openAdjNode = true;
     });
@@ -59,7 +60,7 @@ app.use("/assets", express.static(__dirname + "/client"))
     xAdjacentArray.forEach(function(e){
         let i = matchCoords({x:e[0], y:e[1]}, openNodeArray);
         
-        //Check if connecting to that node would intersect an existing line
+        // Check if connecting to that node would intersect an existing line
         let tempCoord = e;
         let intersect = false;
         diagonalArray.forEach(function(e){
@@ -68,10 +69,10 @@ app.use("/assets", express.static(__dirname + "/client"))
         if (i !== -1 && !intersect) openAdjNode = true;
     });
 
-    return openAdjNode
+    return openAdjNode;
   }
 
-    //Segment Intersection - Modified from https://gist.github.com/gordonwoodhull/50eb65d2f048789f9558
+    // Segment Intersection - Modified from https://gist.github.com/gordonwoodhull/50eb65d2f048789f9558
     const eps = 0.0000001;
     function between(a, b, c) {
         return a-eps <= b && b <= c+eps;
@@ -104,7 +105,7 @@ app.use("/assets", express.static(__dirname + "/client"))
             } else {
                 if (!between(y3, y, y4)) {return false;}
             }
-            //Modified, intersection is ignored if it is a shared endpoint
+            // Modification, intersection is ignored if it is a shared endpoint
             if ((x === x1 && y === y1) || (x === x2 && y === y2)) return false;
         }
         return true;
@@ -112,7 +113,7 @@ app.use("/assets", express.static(__dirname + "/client"))
 
   // INITIALIZE
   app.get("/initialize", function(req,res){
-    //Establish initial game state
+    // Establish initial game state
     turn = 1;
     openNodeArray = [
         [0,0], [1,0], [2,0], [3,0], 
@@ -144,14 +145,17 @@ app.use("/assets", express.static(__dirname + "/client"))
     let newLine = null;
     let node = req.body;
 
-    if (!Object.keys(storedNode).length) {  //Start Click
+    if (!Object.keys(storedNode).length) {  // Start Click
       //Check if first turn or if its one of two end nodes
       if (turn === 1 || matchCoords(node,endNodeArray) > -1){
         storedNode = node;
         deleteNode(node, openNodeArray);
+
+        // Response
         msg = "VALID_START_NODE";
         message = "Select a second node to complete the line.";
       } else {
+        // Response
         msg = "INVALID_START_NODE";
         message = "You must start on either end of the path!";
       }
@@ -173,7 +177,7 @@ app.use("/assets", express.static(__dirname + "/client"))
                 // Special validation for diagonal lines
                 if (isDiagonal) {
                     //Check if intersects any existing diagonal lines
-                    let tempArray = [node.x, node.y, storedNode.x, storedNode.y]
+                    let tempArray = [node.x, node.y, storedNode.x, storedNode.y];
                     diagonalArray.forEach(function(e){
                         if (segment_intersection(...tempArray, ...e)) validNode = false;
                     });
