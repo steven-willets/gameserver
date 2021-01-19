@@ -40,8 +40,6 @@ The game was designed by Sid Sackson.
 
 # Dependencies
 
-This project uses
-
 express.js
 
 body-parser
