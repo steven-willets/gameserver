@@ -104,6 +104,7 @@ app.use("/assets", express.static(__dirname + "/client"))
             } else {
                 if (!between(y3, y, y4)) {return false;}
             }
+            //Modified, intersection is ignored if it is a shared endpoint
             if ((x === x1 && y === y1) || (x === x2 && y === y2)) return false;
         }
         return true;
