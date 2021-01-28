@@ -1,20 +1,17 @@
 const bodyParser = require("body-parser");
 const express = require("express");
 const app = express();
-
 const port = 8080;
 
 app.listen(port, () => {
-  console.log(`Game Server listening at http://localhost:${port}`)
+  console.log(`Game Server listening at http://localhost:${port}`);
 })
 
   app.get("/", function(req,res){
     res.sendFile(__dirname + "/client/index.html");
   });
-
-  app.use(express.static(__dirname + "/client"))
-
-  app.use("/assets", express.static(__dirname + "/client"))
+  app.use(express.static(__dirname + "/client"));
+  app.use("/assets", express.static(__dirname + "/client"));
 
   app.use(bodyParser.urlencoded({ extended: false }));
   app.use(bodyParser.json());
@@ -257,9 +254,9 @@ app.listen(port, () => {
   // NODE-CLICKED
   app.post("/node-clicked", function(req,res){
     let player = gameState.turn % 2 === 0 ? "Player 2" : "Player 1";
+    let node = req.body;
     response.body.heading = player;
     response.body.newLine = null;
-    let node = req.body;
 
     if (!Object.keys(gameState.storedNode).length) {  // Start Click
         lineStart(node);
