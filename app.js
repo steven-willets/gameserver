@@ -21,6 +21,14 @@ app.listen(port, () => {
   
   // Game State variables
   const gameState = {};
+  const response = {
+    "msg": "",
+    "body": {
+        "newLine": null,
+        "heading": "",
+        "message": ""
+    }
+  };
 
   //Create an array of the coordinates available on a specfic dimension grid
   function createGrid(height, width){
@@ -81,6 +89,112 @@ app.listen(port, () => {
     return openAdjNode;
   }
 
+  function lineStart(node){
+    if (gameState.turn === 1 || matchCoords(node,gameState.endNodeArray) > -1){
+        gameState.storedNode = node;
+        deleteNode(node, gameState.openNodeArray);
+
+        // Response
+        response.msg = "VALID_START_NODE";
+        response.body.message = "Select a second node to complete the line.";
+      } else {
+        // Response
+        response.msg = "INVALID_START_NODE";
+        response.body.message = "You must start on either end of the path!";
+      }
+  }
+  function lineEnd(node, player){
+    let validNode = true;
+
+    //Check if its an open node
+    if (matchCoords(node,gameState.openNodeArray) !== -1){
+        
+        let xDiff = node.x - gameState.storedNode.x;
+        let yDiff = node.y - gameState.storedNode.y;
+        let xDiffAbs = Math.abs(xDiff);
+        let yDiffAbs = Math.abs(yDiff);
+        let diff = Math.max(xDiffAbs, yDiffAbs);
+        let isDiagonal = xDiffAbs === yDiffAbs;
+
+        //Verify node is horizontal, vertical, or 45deg relative to start node
+        if (xDiff === 0 || yDiff === 0 || isDiagonal) {
+            // Special validation for diagonal lines
+            if (isDiagonal) {
+                //Check if intersects any existing diagonal lines
+                let tempArray = [node.x, node.y, gameState.storedNode.x, gameState.storedNode.y];
+                gameState.diagonalArray.forEach(function(e){
+                    if (segment_intersection(...tempArray, ...e)) validNode = false;
+                });
+                if (validNode) gameState.diagonalArray.push(tempArray);
+            };
+
+            // Special validation for multi-node lines
+            if (diff > 1) {
+                let tempCoords = [];
+                let tempX = gameState.storedNode.x;
+                let tempY = gameState.storedNode.y;
+                let nodesOpen = true;
+
+                for (let i = 1; i < diff;) {
+                    tempX = tempX + Math.sign(xDiff);
+                    tempY = tempY + Math.sign(yDiff);
+                    tempCoords.push({x:tempX, y:tempY});
+                    i++;
+                };
+
+                tempCoords.forEach(function(e){
+                    if (matchCoords(e, gameState.openNodeArray) === -1) nodesOpen = false;
+                }); 
+                if (nodesOpen){
+                    tempCoords.forEach(function(e){
+                        deleteNode(e, gameState.openNodeArray);
+                    });                
+                } else {
+                    validNode = false;
+                };
+            };
+        } else {
+            validNode = false;
+        }
+    } else {
+        validNode = false;
+    }
+    
+    if (validNode) {
+        player = player === "Player 1" ? "Player 2" : "Player 1";
+
+        //Update arrays
+        if (gameState.turn === 1) {
+            gameState.endNodeArray.push([gameState.storedNode.x, gameState.storedNode.y]);
+        } else {
+            deleteNode(gameState.storedNode, gameState.endNodeArray);
+        }
+        gameState.endNodeArray.push([node.x, node.y]);
+        deleteNode(node, gameState.openNodeArray); //Remove clicked node from open  
+
+        //Check if there are any valid moves at either end point
+        let movesLeft = adjacentNode(gameState.endNodeArray[0]) || adjacentNode(gameState.endNodeArray[1]);
+        if (gameState.openNodeArray.length === 0 || !movesLeft) {
+            response.body.heading = `Game Over on Turn ${gameState.turn}`;
+            response.body.message = `${player} has won`;
+        } else {
+            response.body.heading = player;
+            response.body.message = `Awaiting ${player}'s move`;
+            gameState.turn = gameState.turn + 1;
+        }
+
+        //Response
+        response.msg = "VALID_END_NODE";
+        response.body.newLine = {"start": gameState.storedNode, "end": node};              
+    } else {
+        gameState.openNodeArray.push([gameState.storedNode.x, gameState.storedNode.y]) //Restore initial node
+
+        //Response
+        response.msg = "INVALID_END_NODE";
+        response.body.message = "Please select an unused node that is adjacent vertically, horizontally, or at a 45° angle!";
+    }
+    gameState.storedNode = [];
+  }
     // Segment Intersection - Modified from https://gist.github.com/gordonwoodhull/50eb65d2f048789f9558
     const eps = 0.0000001;
     function between(a, b, c) {
@@ -142,128 +256,19 @@ app.listen(port, () => {
 
   // NODE-CLICKED
   app.post("/node-clicked", function(req,res){
-    let msg;
-    let message;
     let player = gameState.turn % 2 === 0 ? "Player 2" : "Player 1";
-    let heading = player;
-    let newLine = null;
+    response.body.heading = player;
+    response.body.newLine = null;
     let node = req.body;
 
     if (!Object.keys(gameState.storedNode).length) {  // Start Click
-      //Check if first turn or if its one of two end nodes
-      if (gameState.turn === 1 || matchCoords(node,gameState.endNodeArray) > -1){
-        gameState.storedNode = node;
-        deleteNode(node, gameState.openNodeArray);
-
-        // Response
-        msg = "VALID_START_NODE";
-        message = "Select a second node to complete the line.";
-      } else {
-        // Response
-        msg = "INVALID_START_NODE";
-        message = "You must start on either end of the path!";
-      }
+        lineStart(node);
     } else {   //End Click
-        let validNode = true;
-
-        //Check if its an open node
-        if (matchCoords(node,gameState.openNodeArray) !== -1){
-            
-            let xDiff = node.x - gameState.storedNode.x;
-            let yDiff = node.y - gameState.storedNode.y;
-            let xDiffAbs = Math.abs(xDiff);
-            let yDiffAbs = Math.abs(yDiff);
-            let diff = Math.max(xDiffAbs, yDiffAbs);
-            let isDiagonal = xDiffAbs === yDiffAbs;
-    
-            //Verify node is horizontal, vertical, or 45deg relative to start node
-            if (xDiff === 0 || yDiff === 0 || isDiagonal) {
-                // Special validation for diagonal lines
-                if (isDiagonal) {
-                    //Check if intersects any existing diagonal lines
-                    let tempArray = [node.x, node.y, gameState.storedNode.x, gameState.storedNode.y];
-                    gameState.diagonalArray.forEach(function(e){
-                        if (segment_intersection(...tempArray, ...e)) validNode = false;
-                    });
-                    if (validNode) gameState.diagonalArray.push(tempArray);
-                };
-    
-                // Special validation for multi-node lines
-                if (diff > 1) {
-                    let tempCoords = [];
-                    let tempX = gameState.storedNode.x;
-                    let tempY = gameState.storedNode.y;
-                    let nodesOpen = true;
-    
-                    for (let i = 1; i < diff;) {
-                        tempX = tempX + Math.sign(xDiff);
-                        tempY = tempY + Math.sign(yDiff);
-                        tempCoords.push({x:tempX, y:tempY});
-                        i++;
-                    };
-    
-                    tempCoords.forEach(function(e){
-                        if (matchCoords(e, gameState.openNodeArray) === -1) nodesOpen = false;
-                    }); 
-                    if (nodesOpen){
-                        tempCoords.forEach(function(e){
-                            deleteNode(e, gameState.openNodeArray);
-                        });                
-                    } else {
-                        validNode = false;
-                    };
-                };
-            } else {
-                validNode = false;
-            }
-        } else {
-            validNode = false;
-        }
-        
-        if (validNode) {
-            player = player === "Player 1" ? "Player 2" : "Player 1";
-
-            //Update arrays
-            if (gameState.turn === 1) {
-                gameState.endNodeArray.push([gameState.storedNode.x, gameState.storedNode.y]);
-            } else {
-                deleteNode(gameState.storedNode, gameState.endNodeArray);
-            }
-            gameState.endNodeArray.push([node.x, node.y]);
-            deleteNode(node, gameState.openNodeArray); //Remove clicked node from open  
-    
-            //Check if there are any valid moves at either end point
-            let movesLeft = adjacentNode(gameState.endNodeArray[0]) || adjacentNode(gameState.endNodeArray[1]);
-            if (gameState.openNodeArray.length === 0 || !movesLeft) {
-                heading = `Game Over on Turn ${gameState.turn}`;
-                message = `${player} has won`;
-            } else {
-                heading = player;
-                message = `Awaiting ${player}'s move`;
-                gameState.turn = gameState.turn + 1;
-            }
-    
-            //Response
-            msg = "VALID_END_NODE";
-            newLine = {"start": gameState.storedNode, "end": node};              
-        } else {
-            gameState.openNodeArray.push([gameState.storedNode.x, gameState.storedNode.y]) //Restore initial node
-
-            //Response
-            msg = "INVALID_END_NODE";
-            message = "Please select an unused node that is adjacent vertically, horizontally, or at a 45° angle!";
-        }
-        gameState.storedNode = [];
+        lineEnd(node,player);
     }
-    
-    res.json({
-      "msg": msg,
-      "body": {
-          "newLine": newLine,
-          "heading": heading,
-          "message": message,
-        }
-    });
+    res.json(
+      response
+    );
   });
   
   // ERROR
