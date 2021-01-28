@@ -5,7 +5,7 @@ const port = 8080;
 
 app.listen(port, () => {
   console.log(`Game Server listening at http://localhost:${port}`);
-})
+});
 
   app.get("/", function(req,res){
     res.sendFile(__dirname + "/client/index.html");
@@ -40,7 +40,7 @@ app.listen(port, () => {
         }
     }
     return nodes;
-  }
+  };
 
   function matchCoords(obj,arr){
     // Find index of coord pair within an array
@@ -56,7 +56,7 @@ app.listen(port, () => {
   function deleteNode(node,arr){
     let i = matchCoords(node,arr);
     if (i !== -1) arr.splice(i, 1);
-  }
+  };
 
   //Generate the 8 surrounding nodes for a given node, check if they're open
   function adjacentNode(node){
@@ -84,7 +84,15 @@ app.listen(port, () => {
     });
 
     return openAdjNode;
-  }
+  };
+
+  function intializeGame(){
+    gameState.turn = 1;
+    gameState.openNodeArray = createGrid(4,4);
+    gameState.storedNode = {};
+    gameState.endNodeArray = [];
+    gameState.diagonalArray = [];
+  };
 
   function lineStart(node){
     if (gameState.turn === 1 || matchCoords(node,gameState.endNodeArray) > -1){
@@ -99,7 +107,8 @@ app.listen(port, () => {
         response.msg = "INVALID_START_NODE";
         response.body.message = "You must start on either end of the path!";
       }
-  }
+  };
+
   function lineEnd(node, player){
     let validNode = true;
 
@@ -152,10 +161,10 @@ app.listen(port, () => {
             };
         } else {
             validNode = false;
-        }
+        };
     } else {
         validNode = false;
-    }
+    };
     
     if (validNode) {
         player = player === "Player 1" ? "Player 2" : "Player 1";
@@ -209,22 +218,22 @@ app.listen(port, () => {
                 if (!between(x2, x, x1)) {return false;}
             } else {
                 if (!between(x1, x, x2)) {return false;}
-            }
+            };
             if (y1>=y2) {
                 if (!between(y2, y, y1)) {return false;}
             } else {
                 if (!between(y1, y, y2)) {return false;}
-            }
+            };
             if (x3>=x4) {
                 if (!between(x4, x, x3)) {return false;}
             } else {
                 if (!between(x3, x, x4)) {return false;}
-            }
+            };
             if (y3>=y4) {
                 if (!between(y4, y, y3)) {return false;}
             } else {
                 if (!between(y3, y, y4)) {return false;}
-            }
+            };
             // Modification, intersection is ignored if it is a shared endpoint
             if ((x === x1 && y === y1) || (x === x2 && y === y2)) return false;
         }
@@ -234,12 +243,7 @@ app.listen(port, () => {
   // INITIALIZE
   app.get("/initialize", function(req,res){
     // Establish initial game state
-    gameState.turn = 1;
-    gameState.openNodeArray = createGrid(4,4);
-
-    gameState.storedNode = {};
-    gameState.endNodeArray = [];
-    gameState.diagonalArray = [];
+    intializeGame();
 
     res.json({
         "msg": "INITIALIZE",
@@ -258,9 +262,11 @@ app.listen(port, () => {
     response.body.heading = player;
     response.body.newLine = null;
 
-    if (!Object.keys(gameState.storedNode).length) {  // Start Click
+    if (!Object.keys(gameState.storedNode).length) {  
+        // Start Click
         lineStart(node);
-    } else {   //End Click
+    } else {   
+        //End Click
         lineEnd(node,player);
     }
     res.json(
