@@ -7,7 +7,7 @@ app.listen(port, () => {
   console.log(`Game Server listening at http://localhost:${port}`);
 });
 
-  app.get("/", function(req,res){
+app.get("/", function(req,res){
     res.sendFile(__dirname + "/client/index.html");
   });
   app.use(express.static(__dirname + "/client"));
@@ -16,7 +16,8 @@ app.listen(port, () => {
   app.use(bodyParser.urlencoded({ extended: false }));
   app.use(bodyParser.json());
   
-  // Game State variables
+  // Game State consts
+  // To do: Updated gameState to a class, add functions as methods, like updating the turn, player, arrays
   const gameState = {};
   const response = {
     "msg": "",
@@ -37,22 +38,23 @@ app.listen(port, () => {
         for (let i = 0; i < height; i++) {
             y = i;
             nodes.push([x,y]);
-        }
-    }
+        };
+    };
     return nodes;
   };
 
+  // Find index of coord pair within an array
   function matchCoords(obj,arr){
-    // Find index of coord pair within an array
     for (let i = 0; i < arr.length; i++) {
         let coord = [obj.x,obj.y];
         if (arr[i][0] == coord[0] && arr[i][1] == coord[1]) {
             return i;
-        }
-    }
+        };
+    };
     return -1;
   };
 
+  //Remove node from array, if node is there
   function deleteNode(node,arr){
     let i = matchCoords(node,arr);
     if (i !== -1) arr.splice(i, 1);
@@ -73,7 +75,6 @@ app.listen(port, () => {
 
     xAdjacentArray.forEach(function(e){
         let i = matchCoords({x:e[0], y:e[1]}, gameState.openNodeArray);
-        
         // Check if connecting to that node would intersect an existing line
         let tempCoord = e;
         let intersect = false;
@@ -82,23 +83,28 @@ app.listen(port, () => {
         });
         if (i !== -1 && !intersect) openAdjNode = true;
     });
-
     return openAdjNode;
   };
 
   function intializeGame(height, width){
+    // Set game state object
     gameState.turn = 1;
+    gameState.player = "Player 1";
     gameState.openNodeArray = createGrid(height,width);
     gameState.storedNode = {};
     gameState.endNodeArray = [];
     gameState.diagonalArray = [];
+
+    // Set response object
+    response.msg = "INITIALIZE";
+    response.body.heading = gameState.player;
+    response.body.message = `Awaiting ${gameState.player}'s Move`;
   };
 
   function lineStart(node){
     if (gameState.turn === 1 || matchCoords(node,gameState.endNodeArray) > -1){
         gameState.storedNode = node;
         deleteNode(node, gameState.openNodeArray);
-
         // Response
         response.msg = "VALID_START_NODE";
         response.body.message = "Select a second node to complete the line.";
@@ -106,7 +112,7 @@ app.listen(port, () => {
         // Response
         response.msg = "INVALID_START_NODE";
         response.body.message = "You must start on either end of the path!";
-      }
+      };
   };
 
   function validateMulti(diff, xDiff, yDiff){
@@ -114,14 +120,12 @@ app.listen(port, () => {
     let tempX = gameState.storedNode.x;
     let tempY = gameState.storedNode.y;
     let nodesOpen = true;
-
     for (let i = 1; i < diff;) {
         tempX = tempX + Math.sign(xDiff);
         tempY = tempY + Math.sign(yDiff);
         tempCoords.push({x:tempX, y:tempY});
         i++;
     };
-
     tempCoords.forEach(function(e){
         if (matchCoords(e, gameState.openNodeArray) === -1) nodesOpen = false;
     }); 
@@ -146,7 +150,7 @@ app.listen(port, () => {
         return true;
     } else {
         return false;
-    }
+    };
   };
 
   function moveValidation(node){
@@ -172,7 +176,6 @@ app.listen(port, () => {
         } else {
             validDirection = false;
         };
-
         //Check and manage hopped nodes for multi-node lines
         if (diff > 1) {
             unusedNode = validateMulti(diff, xDiff, yDiff);
@@ -181,11 +184,12 @@ app.listen(port, () => {
     return unusedNode && validDirection;
   };
 
-  function lineEnd(node, player){
+  function lineEnd(node){
     let validMove = moveValidation(node);
     
     if (validMove) {
-        player = player === "Player 1" ? "Player 2" : "Player 1";
+        //Update Player
+        gameState.player = gameState.player === "Player 1" ? "Player 2" : "Player 1";
 
         //Update arrays
         if (gameState.turn === 1) {
@@ -200,10 +204,10 @@ app.listen(port, () => {
         let movesLeft = adjacentNode(gameState.endNodeArray[0]) || adjacentNode(gameState.endNodeArray[1]);
         if (gameState.openNodeArray.length === 0 || !movesLeft) {
             response.body.heading = `Game Over on Turn ${gameState.turn}`;
-            response.body.message = `${player} has won`;
+            response.body.message = `${gameState.player} has won`;
         } else {
-            response.body.heading = player;
-            response.body.message = `Awaiting ${player}'s move`;
+            response.body.heading = gameState.player;
+            response.body.message = `Awaiting ${gameState.player}'s move`;
             gameState.turn = gameState.turn + 1;
         };
 
@@ -264,22 +268,13 @@ app.listen(port, () => {
   app.get("/initialize", function(req,res){
     // Establish initial game state
     intializeGame(4,4);
-
-    res.json({
-        "msg": "INITIALIZE",
-        "body": {
-            "newLine": null,
-            "heading": "Player 1",
-            "message": "Awaiting Player 1's Move"
-        }
-    });
+    res.json(response);
   });
 
   // NODE-CLICKED
   app.post("/node-clicked", function(req,res){
-    let player = gameState.turn % 2 === 0 ? "Player 2" : "Player 1";
     let node = req.body;
-    response.body.heading = player;
+    response.body.heading = gameState.player;
     response.body.newLine = null;
 
     if (!Object.keys(gameState.storedNode).length) {  
@@ -287,7 +282,7 @@ app.listen(port, () => {
         lineStart(node);
     } else {   
         //End Click
-        lineEnd(node,player);
+        lineEnd(node);
     }
     res.json(
       response
