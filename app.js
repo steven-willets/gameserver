@@ -1,13 +1,13 @@
-const bodyParser = require("body-parser");
-const express = require("express");
-const app = express();
-const port = 8080;
+  const bodyParser = require("body-parser");
+  const express = require("express");
+  const app = express();
+  const port = 8080;
 
-app.listen(port, () => {
-  console.log(`Game Server listening at http://localhost:${port}`);
-});
+  app.listen(port, () => {
+    console.log(`Game Server listening at http://localhost:${port}`);
+  });
 
-app.get("/", function(req,res){
+  app.get("/", function(req,res){
     res.sendFile(__dirname + "/client/index.html");
   });
   app.use(express.static(__dirname + "/client"));
