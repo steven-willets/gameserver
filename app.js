@@ -1,11 +1,8 @@
-const bodyParser = require('body-parser');
-const express = require('express')
-const cors = require('cors');
-const app = express()
+const bodyParser = require("body-parser");
+const express = require("express");
+const app = express();
 
-const port = 8080
-
-app.use(cors())
+const port = 8080;
 
 app.listen(port, () => {
   console.log(`Game Server listening at http://localhost:${port}`)
@@ -28,7 +25,22 @@ app.listen(port, () => {
   let storedNode;
   let endNodeArray;
   let diagonalArray;
-  
+
+  //Create an array of the coordinates available on a specfic dimension grid
+  function createGrid(height, width){
+    let nodes = [];
+    let x = 0;
+    let y = 0;
+    for (let i = 0; i < width; i++) {
+        x = i;
+        for (let i = 0; i < height; i++) {
+            y = i;
+            nodes.push([x,y]);
+        }
+    }
+    return nodes;
+  }
+
   function matchCoords(obj,arr){
     // Find index of coord pair within an array
     for (let i = 0; i < arr.length; i++) {
@@ -116,12 +128,7 @@ app.listen(port, () => {
   app.get("/initialize", function(req,res){
     // Establish initial game state
     turn = 1;
-    openNodeArray = [
-        [0,0], [1,0], [2,0], [3,0], 
-        [0,1], [1,1], [2,1], [3,1], 
-        [0,2], [1,2], [2,2], [3,2], 
-        [0,3], [1,3], [2,3], [3,3]
-    ];
+    openNodeArray = createGrid(4,4);
 
     storedNode = {};
     endNodeArray = [];
@@ -131,7 +138,7 @@ app.listen(port, () => {
         "msg": "INITIALIZE",
         "body": {
             "newLine": null,
-            "heading": 'Player 1',
+            "heading": "Player 1",
             "message": "Awaiting Player 1's Move"
         }
     });
@@ -141,7 +148,7 @@ app.listen(port, () => {
   app.post("/node-clicked", function(req,res){
     let msg;
     let message;
-    let player = turn % 2 === 0 ? 'Player 2' : 'Player 1';
+    let player = turn % 2 === 0 ? "Player 2" : "Player 1";
     let heading = player;
     let newLine = null;
     let node = req.body;
@@ -265,7 +272,7 @@ app.listen(port, () => {
   
   // ERROR
   app.post("/error", function(req,res){
-    console.log('error')
+    console.log("error")
     res.json({
       "error": "Oops."
     });
